@@ -1,67 +1,41 @@
-// src/app/api/github/route.test.ts
 import { GET } from "./route";
-import axios from "axios";
-import { getServerSession } from "next-auth/next";
+import { getAccessTokenFromRequest } from "@/lib/auth-token";
+import { fetchGitHubRepos } from "@/lib/repos";
 
-// Mock NextAuth session
-jest.mock("next-auth/next", () => ({
-  getServerSession: jest.fn(),
+jest.mock("@/lib/auth-token", () => ({
+  getAccessTokenFromRequest: jest.fn(),
 }));
 
-// Mock axios
-jest.mock("axios");
-const mockedAxios = axios as jest.Mocked<typeof axios>;
+jest.mock("@/lib/repos", () => ({
+  fetchGitHubRepos: jest.fn(),
+}));
 
-// Provide a global Response for Node/Jest
-(global as any).Response = class {
-  status: number;
-  body: any;
-  constructor(body: any, init?: { status?: number }) {
-    this.body = body;
-    this.status = init?.status || 200;
-  }
-  async json() {
-    return JSON.parse(this.body);
-  }
-};
-
-describe("GitHub API route GET", () => {
+describe("GitHub repos API route", () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  it("returns 401 if session is missing or has no accessToken", async () => {
-    (getServerSession as jest.Mock).mockResolvedValueOnce(null);
+  it("returns 401 when auth token is missing", async () => {
+    (getAccessTokenFromRequest as jest.Mock).mockResolvedValue(null);
 
-    const req = {} as Request;
-    const res = await GET(req);
-
+    const req = {} as unknown as Request;
+    const res = await GET(req as never);
     const data = await res.json();
+
     expect(res.status).toBe(401);
     expect(data).toEqual({ error: "Unauthorized" });
   });
 
-  it("returns first 10 repos if session exists", async () => {
-    // Mock session with accessToken
-    (getServerSession as jest.Mock).mockResolvedValueOnce({
-      accessToken: "mock-token",
-    });
+  it("returns repos for authenticated requests", async () => {
+    (getAccessTokenFromRequest as jest.Mock).mockResolvedValue("token-1");
+    (fetchGitHubRepos as jest.Mock).mockResolvedValue([{ id: 1, name: "repo-1" }]);
 
-    // Mock axios response
-    mockedAxios.get.mockResolvedValueOnce({
-      data: Array.from({ length: 20 }, (_, i) => ({ id: i + 1, name: `repo-${i + 1}` })),
-    });
-
-    const req = {} as Request;
-    const res = await GET(req);
-
+    const req = {} as unknown as Request;
+    const res = await GET(req as never);
     const data = await res.json();
-    expect(data).toHaveLength(10);
-    expect(data[0]).toEqual({ id: 1, name: "repo-1" });
 
-    // Axios called with correct headers
-    expect(mockedAxios.get).toHaveBeenCalledWith("https://api.github.com/user/repos", {
-      headers: { Authorization: "token mock-token" },
-    });
+    expect(res.status).toBe(200);
+    expect(data).toEqual([{ id: 1, name: "repo-1" }]);
+    expect(fetchGitHubRepos).toHaveBeenCalledWith("token-1", 10);
   });
 });

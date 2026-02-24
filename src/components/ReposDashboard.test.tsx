@@ -1,9 +1,23 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { ImageProps } from "next/image";
+import axios from "axios";
 import ReposDashboard from "@/components/ReposDashboard";
 
-jest.mock("axios", () => ({
-  get: jest.fn(() =>
-    Promise.resolve({
+jest.mock("next/image", () => ({
+  __esModule: true,
+  default: (props: ImageProps) => <div data-testid="mock-image" data-alt={String(props.alt)} />,
+}));
+
+jest.mock("axios");
+const mockedAxios = axios as jest.Mocked<typeof axios>;
+
+describe("ReposDashboard", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it("renders repositories returned by the insights API", async () => {
+    mockedAxios.get.mockResolvedValueOnce({
       data: [
         {
           id: 1,
@@ -13,51 +27,70 @@ jest.mock("axios", () => ({
           html_url: "https://github.com/user1/repo1",
           created_at: "2026-01-01T00:00:00Z",
           updated_at: "2026-01-02T00:00:00Z",
+          summary: "This is a summary",
+          summaryStatus: "ok",
+          keywords: ["keyword1", "keyword2"],
+        },
+      ],
+    });
+
+    render(<ReposDashboard />);
+
+    expect(await screen.findByText("Repo1")).toBeInTheDocument();
+    expect(await screen.findByText(/This is a summary/)).toBeInTheDocument();
+    expect(await screen.findByText(/keyword1/)).toBeInTheDocument();
+    expect(mockedAxios.get).toHaveBeenCalledWith("/api/repo-insights");
+  });
+
+  it("supports searching repos", async () => {
+    mockedAxios.get.mockResolvedValueOnce({
+      data: [
+        {
+          id: 1,
+          name: "Alpha",
+          description: "first",
+          owner: { login: "user1", avatar_url: "avatar1.png" },
+          html_url: "https://github.com/user1/alpha",
+          created_at: "2026-01-01T00:00:00Z",
+          updated_at: "2026-01-02T00:00:00Z",
+          summary: "summary",
+          summaryStatus: "ok",
+          keywords: [],
         },
         {
           id: 2,
-          name: "Repo2",
-          description: "desc2",
+          name: "Beta",
+          description: "second",
           owner: { login: "user2", avatar_url: "avatar2.png" },
-          html_url: "https://github.com/user2/repo2",
-          created_at: "2026-01-03T00:00:00Z",
-          updated_at: "2026-01-04T00:00:00Z",
+          html_url: "https://github.com/user2/beta",
+          created_at: "2026-01-01T00:00:00Z",
+          updated_at: "2026-01-02T00:00:00Z",
+          summary: "summary",
+          summaryStatus: "ok",
+          keywords: [],
         },
       ],
-    })
-  ),
-  post: jest.fn(() =>
-    Promise.resolve({
-      data: { summary: "This is a summary" },
-    })
-  ),
-}));
+    });
 
-jest.mock("@/lib/keywords", () => ({
-  extractKeywords: () => ["keyword1", "keyword2"],
-}));
+    render(<ReposDashboard />);
+    await screen.findByText("Alpha");
 
-describe("ReposDashboard", () => {
-  it("renders repositories with summary and keywords", async () => {
+    fireEvent.change(screen.getByLabelText("Search repositories"), {
+      target: { value: "beta" },
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByText("Alpha")).not.toBeInTheDocument();
+      expect(screen.getByText("Beta")).toBeInTheDocument();
+    });
+  });
+
+  it("shows retry button on failed fetch", async () => {
+    mockedAxios.get.mockRejectedValueOnce(new Error("network error"));
+
     render(<ReposDashboard />);
 
-    // Check repo names
-    expect(await screen.findByText("Repo1")).toBeInTheDocument();
-    expect(await screen.findByText("Repo2")).toBeInTheDocument();
-
-    // Check descriptions
-    expect(await screen.findByText(/desc1/)).toBeInTheDocument();
-    expect(await screen.findByText(/desc2/)).toBeInTheDocument();
-
-    // Check summaries
-    expect(await screen.findAllByText(/This is a summary/)).toHaveLength(2);
-
-    // Check keywords
-    expect(await screen.findAllByText(/keyword1/)).toHaveLength(2);
-    expect(await screen.findAllByText(/keyword2/)).toHaveLength(2);
-
-    // Check owner info
-    expect(await screen.findByText("user1")).toBeInTheDocument();
-    expect(await screen.findByText("user2")).toBeInTheDocument();
+    expect(await screen.findByText(/Failed to load repository insights/)).toBeInTheDocument();
+    expect(screen.getByText("Retry")).toBeInTheDocument();
   });
 });

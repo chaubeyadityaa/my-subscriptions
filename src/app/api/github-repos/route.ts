@@ -1,15 +1,28 @@
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/app/api/auth/authOptions";
 import axios from "axios";
+import { NextRequest, NextResponse } from "next/server";
+import { getAccessTokenFromRequest } from "@/lib/auth-token";
+import { fetchGitHubRepos } from "@/lib/repos";
 
-export async function GET(req: Request) {
-  const session = await getServerSession(authOptions);
-  if (!session?.accessToken) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
+export async function GET(req: NextRequest) {
+  const accessToken = await getAccessTokenFromRequest(req);
+  if (!accessToken) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
-  const response = await axios.get("https://api.github.com/user/repos", {
-    headers: { Authorization: `token ${session.accessToken}` },
-  });
+  try {
+    const repos = await fetchGitHubRepos(accessToken, 10);
+    return NextResponse.json(repos);
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      const status = error.response?.status ?? 502;
+      if (status === 401 || status === 403) {
+        return NextResponse.json({ error: "GitHub authorization failed or expired." }, { status: 401 });
+      }
+      if (status === 429) {
+        return NextResponse.json({ error: "GitHub rate limit reached. Try again shortly." }, { status: 429 });
+      }
+    }
 
-  const repos = response.data.slice(0, 10); // first 10
-  return new Response(JSON.stringify(repos));
+    return NextResponse.json({ error: "Failed to fetch repositories." }, { status: 502 });
+  }
 }

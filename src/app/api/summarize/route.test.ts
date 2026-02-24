@@ -1,29 +1,54 @@
-// src/app/api/summarize/route.test.ts
 import { POST } from "./route";
+import { summarizeText } from "@/lib/summarize";
 
-// Mock NextResponse
-jest.mock("next/server", () => ({
-  NextResponse: {
-    json: (data: any) => ({ json: async () => data }),
-  },
+jest.mock("@/lib/summarize", () => ({
+  summarizeText: jest.fn(),
 }));
 
 describe("Summarize API route", () => {
   beforeEach(() => {
-    global.fetch = jest.fn();
+    jest.clearAllMocks();
   });
 
-  it("returns a summary for posted text", async () => {
-    (global.fetch as jest.Mock).mockResolvedValue({
-      json: async () => [{ generated_text: "This is a long text summary." }],
-    });
-
-    // Minimal mock Request object
-    const request = { json: async () => ({ text: "This is a long text to summarize." }) } as any;
+  it("returns 400 for invalid request body", async () => {
+    const request = { json: async () => ({}) } as unknown as Request;
 
     const res = await POST(request);
     const data = await res.json();
 
-    expect(data.summary).toContain("This is a long text");
+    expect(res.status).toBe(400);
+    expect(data).toEqual({ error: "Invalid request body." });
+  });
+
+  it("returns summary for valid text", async () => {
+    (summarizeText as jest.Mock).mockResolvedValue({
+      summary: "Concise summary",
+      available: true,
+    });
+
+    const request = {
+      json: async () => ({ text: "This is a long enough repository description for summarization." }),
+    } as unknown as Request;
+
+    const res = await POST(request);
+    const data = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(data.summary).toBe("Concise summary");
+  });
+
+  it("returns 503 when AI is unavailable", async () => {
+    (summarizeText as jest.Mock).mockResolvedValue({
+      summary: "AI temporarily unavailable.",
+      available: false,
+    });
+
+    const request = {
+      json: async () => ({ text: "This is another long enough text for summarization API route." }),
+    } as unknown as Request;
+
+    const res = await POST(request);
+
+    expect(res.status).toBe(503);
   });
 });

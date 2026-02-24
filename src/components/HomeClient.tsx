@@ -2,17 +2,12 @@
 
 import { useSession, signIn, signOut } from "next-auth/react";
 import ReposDashboard from "./ReposDashboard";
-import Providers from "./Providers";
 
 export default function HomeClient() {
-  return <AppContent />;
-}
-
-function AppContent() {
   const { data: session } = useSession();
 
   return (
-    <div className="p-8 max-w-2xl mx-auto">
+    <div className="p-8 max-w-5xl mx-auto">
       {!session ? (
         <button
           className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
