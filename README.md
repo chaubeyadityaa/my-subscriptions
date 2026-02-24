@@ -28,6 +28,14 @@ MySubscriptions is a connected-services dashboard focused on GitHub repositories
 - Hugging Face Inference API
 - Jest + React Testing Library
 
+## Deployment
+
+- Vercel: https://my-subscriptions-vylf.vercel.app/
+
+## CI
+
+- GitHub Actions runs the test suite on every push.
+
 ## Project Structure
 
 ```text
