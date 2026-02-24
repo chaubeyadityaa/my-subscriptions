@@ -132,6 +132,7 @@ npm run dev
 - `GET /api/github-repos`: fetch authenticated user repos
 - `POST /api/summarize`: summarize text payload (`{ text: string }`)
 - `GET /api/repo-insights`: batched repo metadata + summary + keywords
+- OpenAPI spec: `docs/openapi.yaml`
 
 ## Notes
 

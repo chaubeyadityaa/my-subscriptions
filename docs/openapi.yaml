@@ -1,0 +1,203 @@
+openapi: 3.1.0
+info:
+  title: MySubscriptions API
+  version: 1.0.0
+  description: API specification for MySubscriptions GitHub and AI insight routes.
+servers:
+  - url: https://my-subscriptions-vylf.vercel.app
+    description: Production
+  - url: http://localhost:3000
+    description: Local development
+paths:
+  /api/github-repos:
+    get:
+      summary: Fetch GitHub repositories for the authenticated user
+      description: Returns up to 10 repositories for the currently authenticated user.
+      security:
+        - sessionAuth: []
+      responses:
+        "200":
+          description: Repository list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/GitHubRepo"
+        "401":
+          description: Unauthorized or expired GitHub authorization
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: GitHub API rate limit reached
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "502":
+          description: Upstream or fetch failure
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /api/repo-insights:
+    get:
+      summary: Fetch repositories enriched with summaries and keywords
+      description: Returns up to 10 repositories with AI summary and extracted keywords.
+      security:
+        - sessionAuth: []
+      responses:
+        "200":
+          description: Repository insights list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RepoInsight"
+        "401":
+          description: Unauthorized or expired GitHub authorization
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: GitHub API rate limit reached
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "502":
+          description: Failed to build insights
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /api/summarize:
+    post:
+      summary: Summarize text
+      description: Summarizes a text input using Hugging Face inference.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SummarizeRequest"
+      responses:
+        "200":
+          description: Summary generated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SummaryResponse"
+        "400":
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Summarization failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SummaryResponse"
+        "503":
+          description: AI temporarily unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SummaryResponse"
+components:
+  securitySchemes:
+    sessionAuth:
+      type: apiKey
+      in: cookie
+      name: next-auth.session-token
+      description: >
+        NextAuth session cookie. On production, the cookie name may be prefixed
+        with __Secure- depending on deployment and protocol.
+  schemas:
+    Owner:
+      type: object
+      required:
+        - login
+        - avatar_url
+      properties:
+        login:
+          type: string
+        avatar_url:
+          type: string
+          format: uri
+    GitHubRepo:
+      type: object
+      required:
+        - id
+        - name
+        - description
+        - owner
+        - html_url
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type:
+            - string
+            - "null"
+        owner:
+          $ref: "#/components/schemas/Owner"
+        html_url:
+          type: string
+          format: uri
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    RepoInsight:
+      allOf:
+        - $ref: "#/components/schemas/GitHubRepo"
+        - type: object
+          required:
+            - summary
+            - keywords
+            - summaryStatus
+          properties:
+            summary:
+              type: string
+            keywords:
+              type: array
+              items:
+                type: string
+            summaryStatus:
+              type: string
+              enum: [ok, fallback]
+    SummarizeRequest:
+      type: object
+      required:
+        - text
+      properties:
+        text:
+          type: string
+          minLength: 1
+    SummaryResponse:
+      type: object
+      required:
+        - summary
+      properties:
+        summary:
+          type: string
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
