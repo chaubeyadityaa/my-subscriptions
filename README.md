@@ -34,7 +34,8 @@ A connected services dashboard that allows users to view their online service da
 - **AI/NLP**: OpenAI API (or HuggingFace) for summarization, custom keyword extraction  
 - **Authentication**: NextAuth.js with OAuth2  
 - **Testing**: Jest, React Testing Library, Axios mocks  
-- **CI/CD**: GitHub Actions to run tests on push and pull requests  
+- **CI/CD**: GitHub Actions to run tests on push and pull requests
+- **Vercel Deployment**: https://my-subscriptions-vylf.vercel.app/
 
 ---
 
