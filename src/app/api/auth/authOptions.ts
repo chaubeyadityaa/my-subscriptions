@@ -1,4 +1,3 @@
-import { JWT } from "next-auth/jwt";
 import { NextAuthOptions } from "next-auth";
 import GitHubProvider from "next-auth/providers/github";
 
@@ -13,7 +12,7 @@ export const authOptions: NextAuthOptions = {
   ],
   secret: process.env.NEXTAUTH_SECRET,
   callbacks: {
-    async jwt({ token, account }: { token: JWT; account?: { access_token?: string } }) {
+    async jwt({ token, account }) {
       if (account?.access_token) token.accessToken = account.access_token;
       return token;
     },

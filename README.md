@@ -1,199 +1,131 @@
-
 # MySubscriptions
 
-A connected services dashboard that allows users to view their online service data with AI-powered summaries and insights. Built with **Next.js**, **TypeScript**, **TailwindCSS**, and **OpenAI/HuggingFace** for summarization.
-
----
+MySubscriptions is a connected-services dashboard focused on GitHub repositories. Users sign in with GitHub, view recent repositories, and get AI-generated summaries plus keyword insights.
 
 ## Features
 
-- **OAuth2 Authentication**  
-  Sign in with GitHub to access your repositories. Easily extendable to other services (Spotify, Google Calendar, Reddit, etc.).
+- GitHub OAuth login via NextAuth
+- Repository cards with metadata, links, and owner avatars
+- AI summaries (Hugging Face) and keyword extraction
+- Search and sorting in dashboard UI
+- Loading skeletons, retry handling, and empty/error states
 
-- **Fetch & Display Items**  
-  Retrieves your repositories and displays metadata:
-  - Repository name (with link)  
-  - Owner name and avatar  
-  - Created & updated dates  
-  - Description
+## Recent Improvements
 
-- **AI-Powered Insights**  
-  - Summarization of repository descriptions  
-  - Keyword extraction for quick insights  
-
-- **Dashboard UI**  
-  - Responsive grid layout  
-  - Cards with hover effects  
-  - Handles loading, error, and empty states  
-
----
+- Reduced OAuth scope to `read:user public_repo`
+- Kept provider access token server-side only (not exposed on session)
+- Added request/response validation and stronger API error mapping
+- Added batched `GET /api/repo-insights` endpoint
+- Added in-memory TTL caching for repos and summaries
+- Added summary fallback signaling in UI
+- Expanded tests for auth, repo APIs, summarize API, and dashboard behavior
 
 ## Tech Stack
 
-- **Frontend**: Next.js, React, TypeScript, TailwindCSS  
-- **Backend / API**: Next.js API routes  
-- **AI/NLP**: OpenAI API (or HuggingFace) for summarization, custom keyword extraction  
-- **Authentication**: NextAuth.js with OAuth2  
-- **Testing**: Jest, React Testing Library, Axios mocks  
-- **CI/CD**: GitHub Actions (tests on PR & push)  
-- **Deployment**: Vercel  
-  🔗 https://my-subscriptions-vylf.vercel.app/
-
----
+- Next.js (App Router), React, TypeScript
+- TailwindCSS
+- NextAuth.js
+- Hugging Face Inference API
+- Jest + React Testing Library
 
 ## Project Structure
 
-```
+```text
 my-subscriptions/
-│
-├── .github/
-│   └── workflows/
-│       └── test.yml              # GitHub Actions CI workflow
-│
-├── docs/                         # Documentation
-├── node_modules/
+├── docs/
+│   └── feature-spec.md
 ├── public/
-│   └── favicon.ico
-│
+│   └── *.svg
 ├── src/
-│   ├── __tests__/                # Unit/integration tests
-│   │   └── ...test.ts
-│   │
-│   ├── app/                      # Next.js App Router
-│   │   ├── api/                  # API routes
+│   ├── app/
+│   │   ├── api/
 │   │   │   ├── auth/
 │   │   │   │   ├── [...nextauth]/
 │   │   │   │   │   ├── route.ts
 │   │   │   │   │   └── route.test.ts
-│   │   │   │   ├── authOptions.ts
-│   │   │   │   └── route.test.ts
-│   │   │   │
+│   │   │   │   └── authOptions.ts
 │   │   │   ├── github-repos/
 │   │   │   │   ├── route.ts
 │   │   │   │   └── route.test.ts
-│   │   │   │
+│   │   │   ├── repo-insights/
+│   │   │   │   ├── route.ts
+│   │   │   │   └── route.test.ts
 │   │   │   └── summarize/
 │   │   │       ├── route.ts
 │   │   │       └── route.test.ts
-│   │   │
-│   │   ├── globals.css           # Global styles
-│   │   ├── layout.tsx            # Root layout
-│   │   └── page.tsx              # Main dashboard page
-│   │
-│   ├── components/               # React components
-│   │   └── ...tsx
-│   │
-│   ├── lib/                      # Helpers & utilities
-│   │   └── ...
-│   │
-│   └── types/                    # TypeScript definitions
+│   │   ├── favicon.ico
+│   │   ├── globals.css
+│   │   ├── layout.tsx
+│   │   └── page.tsx
+│   ├── components/
+│   │   ├── HomeClient.tsx
+│   │   ├── HomeClient.test.tsx
+│   │   ├── Providers.tsx
+│   │   ├── ReposDashboard.tsx
+│   │   └── ReposDashboard.test.tsx
+│   ├── lib/
+│   │   ├── auth-token.ts
+│   │   ├── cache.ts
+│   │   ├── keywords.ts
+│   │   ├── keywords.test.ts
+│   │   ├── repos.ts
+│   │   └── summarize.ts
+│   └── types/
 │       └── next-auth.d.ts
-│
-├── .env.local                    # Environment variables
-├── .gitignore
-│
-├── eslint.config.mjs             # ESLint config
-├── jest.config.js                # Jest config
-├── jest.setup.js                 # Jest test bootstrap
-│
-├── next.config.ts                # Next.js config
-├── next-env.d.ts                 # Next.js TS environment definitions
-│
+├── .env.example
+├── eslint.config.mjs
+├── jest.config.js
+├── jest.setup.js
+├── next.config.ts
 ├── package.json
-├── package-lock.json
 ├── postcss.config.mjs
-├── tailwind.config.ts
 ├── tsconfig.json
-│
 └── README.md
 ```
 
----
+## Setup
 
-## Getting Started
+1. Install dependencies:
 
-### 1. Clone the repository
-```bash
-git clone git@github.com:chaubeyadityaa/my-subscriptions.git
-cd my-subscriptions
-```
-
-### 2. Install dependencies
 ```bash
 npm install
-# or
-yarn install
-# or
-pnpm install
 ```
 
----
+2. Create local env file:
 
-## Environment Variables
-
-Create a `.env.local` file:
-
-```env
-NEXTAUTH_SECRET=your_nextauth_secret
-NEXTAUTH_URL=http://localhost:3000
-
-GITHUB_CLIENT_ID=your_github_client_id
-GITHUB_CLIENT_SECRET=your_github_client_secret
-
-OPENAI_API_KEY=your_openai_key
-HUGGINGFACE_API_KEY=your_huggingface_key
-```
-
-Generate secret:
 ```bash
-openssl rand -base64 32
+cp .env.example .env.local
 ```
 
----
+3. Fill values in `.env.local`:
 
-## Running the Application
+- `NEXTAUTH_URL`
+- `NEXTAUTH_SECRET`
+- `GITHUB_CLIENT_ID`
+- `GITHUB_CLIENT_SECRET`
+- `HUGGINGFACE_API_KEY`
 
-### Development
+4. Run development server:
+
 ```bash
 npm run dev
 ```
-http://localhost:3000
 
-### Production
-```bash
-npm run build
-npm start
-```
+## Scripts
 
----
+- `npm run dev` - start development server
+- `npm run build` - create production build
+- `npm run start` - start production server
+- `npm run lint` - run ESLint
+- `npm test` - run Jest test suite
 
-## Testing
-```bash
-npm test
-npm run test:coverage
-```
+## API Endpoints
 
----
+- `GET /api/github-repos`: fetch authenticated user repos
+- `POST /api/summarize`: summarize text payload (`{ text: string }`)
+- `GET /api/repo-insights`: batched repo metadata + summary + keywords
 
-## Roadmap
+## Notes
 
-- [ ] Add more integrations (Google Calendar, Spotify, Reddit)  
-- [ ] Customizable dashboards  
-- [ ] Vector embeddings for repositories  
-- [ ] Monthly email report  
-- [ ] Optional React Native mobile app  
-
----
-
-## Contributing
-
-1. Fork the repo  
-2. Create a feature branch  
-3. Submit a PR  
-
----
-
-## License
-
-MIT License © 2026 Adityaa Chaubey
-
+- AI responses can degrade gracefully when Hugging Face is unavailable.
+- Cache is in-memory and instance-local (good for local/dev and single-instance deploys).
