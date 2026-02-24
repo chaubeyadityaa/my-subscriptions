@@ -134,6 +134,14 @@ npm run dev
 - `GET /api/repo-insights`: batched repo metadata + summary + keywords
 - OpenAPI spec: `docs/openapi.yaml`
 
+## Future Improvements
+
+- Add real observability: structured logs, request IDs, metrics for API latency/error rate, and alerting for Hugging Face/GitHub failures.
+- Improve auth/session hardening: token refresh/reauth flow, clearer expired-session UX, and stricter middleware protection on dashboard routes.
+- Add richer tests: Playwright E2E for login/dashboard/retry paths and contract tests for GitHub/HF response edge cases.
+- UX polish: per-card refresh, relative timestamps, accessibility pass (keyboard/focus/ARIA), and better mobile card density.
+- Deployment polish: add health endpoint, environment validation at startup, and CI gates for lint/test/build with required status checks.
+
 ## Notes
 
 - AI responses can degrade gracefully when Hugging Face is unavailable.
